@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#D85A30">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Doces da Jú">
+<title>Doces &amp; Petiscos da Jú</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --brand:#D85A30;--brand-light:#FAECE7;--brand-dark:#993C1D;--brand-text:#71290E;
+  --success:#0F6E56;--success-light:#E1F5EE;--success-text:#04342C;
+  --warning:#854F0B;--warning-light:#FAEEDA;--warning-text:#412402;
+  --danger:#A32D2D;--danger-light:#FCEBEB;--danger-text:#501313;
+  --info:#185FA5;--info-light:#E6F1FB;--info-text:#042C53;
+  --text:#1a1a18;--muted:#6b6b66;--subtle:#9b9b96;
+  --bg:#ffffff;--surface:#F7F5F0;
+  --border:#e0ded8;--border2:#cccac4;
+  --radius:12px;--radius-sm:8px;--radius-full:999px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.1);
+}
+html,body{height:100%;overflow:hidden;background:var(--surface)}
+body{font-family:'DM Sans',sans-serif;color:var(--text);font-size:15px;line-height:1.5}
+
+#app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;background:var(--bg);overflow:hidden}
+
+/* HEADER */
+.header{background:var(--brand);color:#fff;padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(255,255,255,0.06);border-radius:50%}
+.header-inner{padding:14px 16px 12px;position:relative;z-index:1}
+.header h1{font-family:'DM Serif Display',serif;font-size:19px;font-weight:400}
+.header-sub{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+.header p{font-size:12px;opacity:0.8}
+.badge{background:rgba(255,255,255,0.22);color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:var(--radius-full);border:1px solid rgba(255,255,255,0.3)}
+
+/* SYNC STATUS */
+.sync-bar{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;background:var(--brand-dark);font-size:12px;color:rgba(255,255,255,0.75);flex-shrink:0}
+.sync-dot{width:7px;height:7px;border-radius:50%;margin-right:6px;flex-shrink:0}
+.sync-dot.ok{background:#5DCAA5}
+.sync-dot.err{background:#F09595}
+.sync-dot.spin{background:#FAC775;animation:pulse 1s infinite}
+.sync-dot.cfg{background:rgba(255,255,255,0.4)}
+.sync-left{display:flex;align-items:center}
+.btn-cfg{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:var(--radius-full);cursor:pointer;font-family:'DM Sans',sans-serif}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* TABS */
+.tabs{display:flex;background:var(--brand-dark);flex-shrink:0;border-top:1px solid rgba(255,255,255,0.1)}
+.tab{flex:1;padding:11px 8px;text-align:center;font-size:13px;font-weight:500;color:rgba(255,255,255,0.6);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+.tab.active{color:#fff;border-bottom-color:rgba(255,255,255,0.85)}
+
+/* PAGES */
+.page{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--surface);display:none}
+.page.active{display:block}
+.page-inner{padding:16px;padding-bottom:32px}
+
+/* SECTIONS & FIELDS */
+.section{margin-bottom:18px}
+.section-label{font-size:11px;font-weight:600;color:var(--subtle);text-transform:uppercase;letter-spacing:0.9px;margin-bottom:8px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:5px}
+.field input,.field select,.field textarea{
+  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);background:var(--bg);
+  -webkit-appearance:none;appearance:none;transition:border-color 0.15s
+}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--brand)}
+.field textarea{resize:none;height:80px;line-height:1.5}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ESTADO */
+.estado-row{display:flex;gap:8px}
+.estado-btn{flex:1;padding:10px 6px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;text-align:center;border:1px solid var(--border);background:var(--bg);color:var(--muted);transition:all 0.15s}
+.estado-btn.pendente.sel{background:var(--warning-light);border-color:#BA7517;color:var(--warning-text)}
+.estado-btn.entregue.sel{background:var(--success-light);border-color:#1D9E75;color:var(--success-text)}
+.estado-btn.cancelado.sel{background:var(--danger-light);border-color:#E24B4A;color:var(--danger-text)}
+
+/* BUTTONS */
+.btn-submit{
+  width:100%;padding:15px;background:var(--brand);color:#fff;border:none;
+  border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;
+  cursor:pointer;box-shadow:0 2px 8px rgba(216,90,48,0.35);transition:transform 0.1s;margin-top:4px
+}
+.btn-submit:active{transform:scale(0.98)}
+.btn-submit:disabled{opacity:0.6;cursor:not-allowed}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{background:var(--bg);border-radius:var(--radius-sm);padding:12px 14px;border:1px solid var(--border)}
+.stat-label{font-size:11px;color:var(--subtle);font-weight:500;margin-bottom:3px}
+.stat-val{font-size:26px;font-weight:600;line-height:1}
+
+/* FILTERS */
+.filter-row{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.fchip{padding:6px 14px;border-radius:var(--radius-full);font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;white-space:nowrap;transition:all 0.15s;flex-shrink:0}
+.fchip.active{background:var(--brand-light);border-color:var(--brand);color:var(--brand-text)}
+
+/* ORDER CARD */
+.order-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color 0.15s}
+.order-card:active{border-color:var(--border2)}
+.order-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px}
+.order-apt{font-weight:600;font-size:15px;color:var(--text)}
+.order-tipo-tag{font-size:11px;font-weight:600;background:var(--brand-light);color:var(--brand-text);padding:3px 10px;border-radius:var(--radius-full);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.order-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);font-weight:500}
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:var(--radius-full);font-size:11px;font-weight:600;flex-shrink:0}
+.chip.Pendente{background:var(--warning-light);color:var(--warning-text)}
+.chip.Entregue{background:var(--success-light);color:var(--success-text)}
+.chip.Cancelado{background:var(--danger-light);color:var(--danger-text)}
+.order-obs{font-size:12px;color:var(--subtle);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);line-height:1.45}
+.order-sync-err{font-size:11px;color:var(--danger);margin-top:6px;display:flex;align-items:center;gap:4px}
+.empty{text-align:center;padding:48px 16px;color:var(--subtle)}
+.empty-ico{font-size:40px;margin-bottom:10px}
+.empty p{font-size:14px}
+
+/* EXPORT */
+.export-btn-wrap{margin-top:4px;padding-bottom:8px;display:none}
+.btn-export{
+  width:100%;padding:13px;background:var(--success);color:#fff;border:none;
+  border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 2px 8px rgba(15,110,86,0.3);transition:transform 0.1s
+}
+.btn-export:active{transform:scale(0.98)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg);border-radius:20px 20px 0 0;padding:20px 16px;padding-bottom:calc(20px + env(safe-area-inset-bottom,0));width:100%;max-width:480px;transform:translateY(40px);transition:transform 0.25s;max-height:90vh;overflow-y:auto}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+.modal-estado-row{display:flex;gap:8px;margin-bottom:14px}
+.modal-btn{flex:1;padding:11px 6px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;text-align:center;border:1px solid var(--border);background:var(--bg);color:var(--muted);transition:all 0.15s}
+.modal-btn.pendente.sel{background:var(--warning-light);border-color:#BA7517;color:var(--warning-text)}
+.modal-btn.entregue.sel{background:var(--success-light);border-color:#1D9E75;color:var(--success-text)}
+.modal-btn.cancelado.sel{background:var(--danger-light);border-color:#E24B4A;color:var(--danger-text)}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+.btn-cancel{flex:1;padding:13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;color:var(--muted)}
+.btn-save{flex:2;padding:13px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+.btn-save:disabled{opacity:0.6}
+.btn-delete{width:100%;margin-top:8px;padding:12px;background:var(--danger-light);color:var(--danger-text);border:1px solid #F09595;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+
+/* CONFIG MODAL */
+.cfg-info{background:var(--info-light);border:1px solid #B5D4F4;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--info-text);line-height:1.6}
+.cfg-info strong{font-weight:600}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1a18;color:#fff;padding:10px 20px;border-radius:var(--radius-full);font-size:13px;font-weight:500;opacity:0;transition:all 0.3s;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:var(--shadow-md)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* INSTALL BANNER */
+.install-banner{background:var(--brand-light);border-bottom:1px solid #F0997B;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.install-banner p{font-size:12px;color:var(--brand-text);flex:1;line-height:1.4}
+.install-banner strong{font-weight:600}
+.btn-install{padding:7px 14px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-install-x{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;line-height:1}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- INSTALL BANNER -->
+  <div class="install-banner" id="install-banner" style="display:none">
+    <p><strong>Instalar app</strong><br>Adicione ao ecrã inicial para usar offline</p>
+    <button class="btn-install" id="btn-install-do">Instalar</button>
+    <button class="btn-install-x" onclick="document.getElementById('install-banner').style.display='none'">×</button>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-inner">
+      <h1>🍰 Doces &amp; Petiscos da Jú</h1>
+      <div class="header-sub">
+        <p>Gestão de Encomendas</p>
+        <span class="badge" id="total-badge">0 encomendas</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYNC BAR -->
+  <div class="sync-bar">
+    <div class="sync-left">
+      <div class="sync-dot cfg" id="sync-dot"></div>
+      <span id="sync-msg">Google Sheets não configurado</span>
+    </div>
+    <button class="btn-cfg" onclick="openCfg()">⚙ Configurar</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('nova')">Nova Encomenda</div>
+    <div class="tab" onclick="switchTab('lista')">Encomendas</div>
+  </div>
+
+  <!-- PAGE: NOVA -->
+  <div class="page active" id="page-nova">
+    <div class="page-inner">
+
+      <div class="section">
+        <div class="section-label">Localização</div>
+        <div class="field">
+          <label>Apartamento / Local</label>
+          <input type="text" id="f-apt" placeholder="ex: Apto 12B, Vila Mar, Casa Praia...">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Tipo de Serviço</div>
+        <div class="field">
+          <label>Descrição do serviço</label>
+          <input type="text" id="f-tipo" placeholder="ex: Bolo de aniversário, Catering, Petiscos...">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Detalhes</div>
+        <div class="field">
+          <label>Nº de Pessoas</label>
+          <input type="number" id="f-pessoas" placeholder="ex: 4" min="1" max="999">
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Data</label>
+            <input type="date" id="f-data">
+          </div>
+          <div class="field">
+            <label>Hora de Entrega</label>
+            <input type="time" id="f-hora">
+          </div>
+        </div>
+        <div class="field">
+          <label>Preço (€)</label>
+          <input type="number" id="f-preco" placeholder="ex: 45.00" min="0" step="0.01">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Estado</div>
+        <div class="estado-row">
+          <div class="estado-btn pendente sel" id="eb-pendente" onclick="selectEstado('Pendente')">Pendente</div>
+          <div class="estado-btn entregue" id="eb-entregue" onclick="selectEstado('Entregue')">Entregue</div>
+          <div class="estado-btn cancelado" id="eb-cancelado" onclick="selectEstado('Cancelado')">Cancelado</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Observações</div>
+        <div class="field">
+          <textarea id="f-obs" placeholder="Notas, alergias, preferências, motivo de cancelamento..."></textarea>
+        </div>
+      </div>
+
+      <button class="btn-submit" id="btn-submit" onclick="saveOrder()">✓ Registar Encomenda</button>
+    </div>
+  </div>
+
+  <!-- PAGE: LISTA -->
+  <div class="page" id="page-lista">
+    <div class="page-inner">
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-label">Total</div><div class="stat-val" id="st-total">0</div></div>
+        <div class="stat"><div class="stat-label">Pendentes</div><div class="stat-val" id="st-pend" style="color:var(--warning)">0</div></div>
+        <div class="stat"><div class="stat-label">Entregues</div><div class="stat-val" id="st-ent" style="color:var(--success)">0</div></div>
+        <div class="stat"><div class="stat-label">Cancelados</div><div class="stat-val" id="st-canc" style="color:var(--danger)">0</div></div>
+        <div class="stat" style="grid-column:span 2"><div class="stat-label">Faturação Total (entregues)</div><div class="stat-val" id="st-faturacao" style="font-size:20px;color:var(--success)">0,00 €</div></div>
+      </div>
+      <div class="filter-row">
+        <div class="fchip active" onclick="setFilter('Todos',this)">Todos</div>
+        <div class="fchip" onclick="setFilter('Pendente',this)">Pendentes</div>
+        <div class="fchip" onclick="setFilter('Entregue',this)">Entregues</div>
+        <div class="fchip" onclick="setFilter('Cancelado',this)">Cancelados</div>
+      </div>
+      <div id="orders-list"></div>
+      <div class="export-btn-wrap" id="export-area">
+        <button class="btn-export" onclick="exportExcel()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="1" width="14" height="14" rx="2" stroke="#fff" stroke-width="1.3"/>
+            <path d="M4 6l2.5 4L9 6M11 5v6M11 11h1.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Exportar para Excel (.xlsx)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR ENCOMENDA -->
+<div class="modal-overlay" id="modal-edit" onclick="closeModalOutside(event,'modal-edit')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Editar Encomenda</div>
+    <div class="modal-sub" id="modal-apt-info"></div>
+    <div class="section-label" style="margin-bottom:8px">Estado</div>
+    <div class="modal-estado-row">
+      <div class="modal-btn pendente" id="mb-pendente" onclick="selectModalEstado('Pendente')">Pendente</div>
+      <div class="modal-btn entregue" id="mb-entregue" onclick="selectModalEstado('Entregue')">Entregue</div>
+      <div class="modal-btn cancelado" id="mb-cancelado" onclick="selectModalEstado('Cancelado')">Cancelado</div>
+    </div>
+    <div class="section-label" style="margin-bottom:8px">Observações</div>
+    <textarea id="modal-obs" style="width:100%;height:80px;padding:11px 14px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;color:var(--text);background:var(--bg)" placeholder="Notas adicionais..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-edit')">Cancelar</button>
+      <button class="btn-save" id="btn-modal-save" onclick="saveEdit()">Guardar</button>
+    </div>
+    <button class="btn-delete" onclick="deleteOrder()">🗑 Eliminar Encomenda</button>
+  </div>
+</div>
+
+<!-- MODAL: CONFIGURAR GOOGLE SHEETS -->
+<div class="modal-overlay" id="modal-cfg" onclick="closeModalOutside(event,'modal-cfg')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙ Ligação ao Google Sheets</div>
+    <div class="cfg-info">
+      <strong>Como obter o URL do script:</strong><br>
+      Siga o guia <em>Guia_Configuracao.html</em> que recebeu junto com esta app. No final do guia obterá um link que começa por <em>https://script.google.com/macros/s/...</em> — cole-o aqui.
+    </div>
+    <div class="field">
+      <label>URL do Google Apps Script</label>
+      <input type="url" id="cfg-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-cfg')">Cancelar</button>
+      <button class="btn-save" onclick="saveCfg()">Guardar e Testar</button>
+    </div>
+    <div id="cfg-result" style="margin-top:12px;font-size:13px;text-align:center;color:var(--muted)"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+//  ESTADO GLOBAL
+// ══════════════════════════════════════
+let orders    = JSON.parse(localStorage.getItem('ju_orders') || '[]');
+let scriptUrl = localStorage.getItem('ju_script_url') || '';
+let currentEstado = 'Pendente';
+let currentFilter = 'Todos';
+let editId        = null;
+let modalEstado   = 'Pendente';
+let isSaving      = false;
+
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('f-data').value = today;
+updateBadge();
+updateSyncBar();
+
+// ══════════════════════════════════════
+//  INSTALL PWA
+// ══════════════════════════════════════
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'flex';
+});
+document.getElementById('btn-install-do').addEventListener('click', async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const {outcome} = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner').style.display = 'none';
+  if(outcome==='accepted') showToast('App instalada!');
+});
+
+// ══════════════════════════════════════
+//  SYNC BAR
+// ══════════════════════════════════════
+function updateSyncBar(state, msg) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-msg');
+  dot.className = 'sync-dot ' + (state || 'cfg');
+  txt.textContent = msg || (scriptUrl ? 'Google Sheets configurado' : 'Google Sheets não configurado');
+}
+
+// ══════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', i===(t==='nova'?0:1)));
+  document.getElementById('page-nova').classList.toggle('active', t==='nova');
+  document.getElementById('page-lista').classList.toggle('active', t==='lista');
+  if(t==='lista') renderList();
+}
+
+// ══════════════════════════════════════
+//  ESTADO FORM
+// ══════════════════════════════════════
+function selectEstado(val) {
+  currentEstado = val;
+  ['Pendente','Entregue','Cancelado'].forEach(e =>
+    document.getElementById('eb-'+e.toLowerCase()).classList.toggle('sel', e===val)
+  );
+}
+
+// ══════════════════════════════════════
+//  GUARDAR ENCOMENDA
+// ══════════════════════════════════════
+async function saveOrder() {
+  const apt     = document.getElementById('f-apt').value.trim();
+  const tipo    = document.getElementById('f-tipo').value.trim();
+  const pessoas = document.getElementById('f-pessoas').value;
+  const data    = document.getElementById('f-data').value;
+  const hora    = document.getElementById('f-hora').value;
+  const obs     = document.getElementById('f-obs').value.trim();
+  const preco   = document.getElementById('f-preco').value;
+
+  if(!apt)    { showToast('Preencha o apartamento/local'); return }
+  if(!tipo)   { showToast('Indique o tipo de serviço'); return }
+  if(!pessoas){ showToast('Indique o nº de pessoas'); return }
+  if(!data)   { showToast('Selecione a data'); return }
+  if(!hora)   { showToast('Indique a hora de entrega'); return }
+
+  const order = {
+    id: Date.now(),
+    apartamento: apt,
+    tipo,
+    pessoas: parseInt(pessoas),
+    data,
+    hora,
+    preco: preco ? parseFloat(preco) : '',
+    estado: currentEstado,
+    observacoes: obs,
+    criadoEm: new Date().toLocaleString('pt-PT'),
+    synced: false
+  };
+
+  orders.unshift(order);
+  persist();
+  updateBadge();
+  resetForm();
+  showToast('Encomenda registada!');
+
+  // Tentar sincronizar com Google Sheets
+  await syncOrder(order);
+}
+
+// ══════════════════════════════════════
+//  GOOGLE SHEETS SYNC
+// ══════════════════════════════════════
+async function syncOrder(order) {
+  if(!scriptUrl) return;
+  updateSyncBar('spin', 'A sincronizar...');
+  try {
+    const resp = await fetch(scriptUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add', order }),
+    });
+    const json = await resp.json();
+    if(json.status === 'ok') {
+      order.synced = true;
+      persist();
+      updateSyncBar('ok', 'Sincronizado • ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
+    } else {
+      throw new Error(json.message || 'Erro desconhecido');
+    }
+  } catch(e) {
+    updateSyncBar('err', 'Erro ao sincronizar — dados guardados localmente');
+    console.error('Sync error:', e);
+  }
+}
+
+async function syncUpdate(order) {
+  if(!scriptUrl) return;
+  updateSyncBar('spin', 'A actualizar...');
+  try {
+    const resp = await fetch(scriptUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update', order }),
+    });
+    const json = await resp.json();
+    if(json.status === 'ok') {
+      order.synced = true;
+      persist();
+      updateSyncBar('ok', 'Actualizado • ' + new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'}));
+    } else throw new Error(json.message);
+  } catch(e) {
+    updateSyncBar('err', 'Erro ao actualizar — guardado localmente');
+  }
+}
+
+async function syncDelete(id) {
+  if(!scriptUrl) return;
+  try {
+    await fetch(scriptUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'delete', id }),
+    });
+  } catch(e) { /* silencioso */ }
+}
+
+// Reenviar encomendas que falharam a sincronização
+async function retrySyncPending() {
+  if(!scriptUrl) return;
+  const pending = orders.filter(o => !o.synced);
+  for(const o of pending) {
+    await syncOrder(o);
+  }
+}
+
+// ══════════════════════════════════════
+//  PERSIST LOCAL
+// ══════════════════════════════════════
+function persist() {
+  localStorage.setItem('ju_orders', JSON.stringify(orders));
+}
+
+function resetForm() {
+  document.getElementById('f-apt').value = '';
+  document.getElementById('f-tipo').value = '';
+  document.getElementById('f-pessoas').value = '';
+  document.getElementById('f-data').value = today;
+  document.getElementById('f-hora').value = '';
+  document.getElementById('f-preco').value = '';
+  document.getElementById('f-obs').value = '';
+  selectEstado('Pendente');
+}
+
+function updateBadge() {
+  const n = orders.length;
+  document.getElementById('total-badge').textContent = n + ' encomenda' + (n!==1?'s':'');
+}
+
+// ══════════════════════════════════════
+//  LISTA & FILTROS
+// ══════════════════════════════════════
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function renderList() {
+  const filtered = currentFilter==='Todos' ? orders : orders.filter(o => o.estado===currentFilter);
+
+  document.getElementById('st-total').textContent = orders.length;
+  document.getElementById('st-pend').textContent  = orders.filter(o=>o.estado==='Pendente').length;
+  document.getElementById('st-ent').textContent   = orders.filter(o=>o.estado==='Entregue').length;
+  document.getElementById('st-canc').textContent  = orders.filter(o=>o.estado==='Cancelado').length;
+  const faturacao = orders.filter(o=>o.estado==='Entregue' && o.preco!=='' && o.preco!==undefined).reduce((s,o)=>s+parseFloat(o.preco||0),0);
+  document.getElementById('st-faturacao').textContent = faturacao.toFixed(2).replace('.',',') + ' €';
+  document.getElementById('export-area').style.display = orders.length ? '' : 'none';
+
+  const el = document.getElementById('orders-list');
+  if(!filtered.length) {
+    const msg = currentFilter==='Todos' ? 'Sem encomendas ainda.' : 'Sem encomendas ' + currentFilter.toLowerCase() + 's.';
+    el.innerHTML = `<div class="empty"><div class="empty-ico">📋</div><p>${msg}</p></div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(o => {
+    const d = o.data ? new Date(o.data+'T12:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '-';
+    const syncWarn = (!o.synced && scriptUrl) ? `<div class="order-sync-err">⚠ Não sincronizado</div>` : '';
+    const precoStr = (o.preco !== '' && o.preco !== undefined) ? `<span>💶 ${parseFloat(o.preco).toFixed(2)} €</span>` : '';
+    return `<div class="order-card" onclick="openEdit(${o.id})">
+      <div class="order-top">
+        <div style="flex:1;min-width:0">
+          <div class="order-apt">${esc(o.apartamento)}</div>
+          <span class="order-tipo-tag">${esc(o.tipo)}</span>
+        </div>
+        <span class="chip ${o.estado}">${o.estado}</span>
+      </div>
+      <div class="order-meta">
+        <span>👤 ${o.pessoas} pess.</span>
+        <span>📅 ${d}</span>
+        <span>🕐 ${o.hora}</span>
+        ${precoStr}
+      </div>
+      ${o.observacoes ? `<div class="order-obs">${esc(o.observacoes)}</div>` : ''}
+      ${syncWarn}
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════
+//  MODAL EDITAR
+// ══════════════════════════════════════
+function openEdit(id) {
+  editId = id;
+  const o = orders.find(x=>x.id===id);
+  if(!o) return;
+  const d = o.data ? new Date(o.data+'T12:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'2-digit',year:'numeric'}) : '';
+  document.getElementById('modal-apt-info').textContent = `${o.apartamento} · ${o.tipo} · ${d} ${o.hora}`;
+  document.getElementById('modal-obs').value = o.observacoes || '';
+  modalEstado = o.estado;
+  ['Pendente','Entregue','Cancelado'].forEach(e =>
+    document.getElementById('mb-'+e.toLowerCase()).classList.toggle('sel', e===modalEstado)
+  );
+  document.getElementById('modal-edit').classList.add('open');
+}
+
+function selectModalEstado(val) {
+  modalEstado = val;
+  ['Pendente','Entregue','Cancelado'].forEach(e =>
+    document.getElementById('mb-'+e.toLowerCase()).classList.toggle('sel', e===val)
+  );
+}
+
+async function saveEdit() {
+  const o = orders.find(x=>x.id===editId);
+  if(!o) return;
+  o.estado = modalEstado;
+  o.observacoes = document.getElementById('modal-obs').value.trim();
+  o.synced = false;
+  persist();
+  closeModal('modal-edit');
+  renderList();
+  showToast('Encomenda actualizada!');
+  await syncUpdate(o);
+  renderList();
+}
+
+async function deleteOrder() {
+  if(!confirm('Eliminar esta encomenda?')) return;
+  const id = editId;
+  orders = orders.filter(x=>x.id!==id);
+  persist();
+  updateBadge();
+  closeModal('modal-edit');
+  renderList();
+  showToast('Encomenda eliminada.');
+  await syncDelete(id);
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if(id==='modal-edit') editId = null;
+}
+
+function closeModalOutside(e, id) {
+  if(e.target===document.getElementById(id)) closeModal(id);
+}
+
+// ══════════════════════════════════════
+//  CONFIG MODAL
+// ══════════════════════════════════════
+function openCfg() {
+  document.getElementById('cfg-url').value = scriptUrl;
+  document.getElementById('cfg-result').textContent = '';
+  document.getElementById('modal-cfg').classList.add('open');
+}
+
+async function saveCfg() {
+  const url = document.getElementById('cfg-url').value.trim();
+  if(!url) { document.getElementById('cfg-result').textContent = 'Cole o URL do script.'; return }
+  if(!url.startsWith('https://script.google.com')) {
+    document.getElementById('cfg-result').textContent = 'URL inválido. Deve começar por https://script.google.com';
+    return;
+  }
+  document.getElementById('cfg-result').textContent = '⏳ A testar ligação...';
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'ping' }),
+    });
+    const json = await resp.json();
+    if(json.status === 'ok') {
+      scriptUrl = url;
+      localStorage.setItem('ju_script_url', scriptUrl);
+      updateSyncBar('ok', 'Ligado ao Google Sheets');
+      document.getElementById('cfg-result').innerHTML = '<span style="color:var(--success)">✓ Ligação bem sucedida!</span>';
+      setTimeout(() => {
+        closeModal('modal-cfg');
+        retrySyncPending();
+      }, 1200);
+    } else throw new Error(json.message || 'Resposta inválida');
+  } catch(e) {
+    document.getElementById('cfg-result').innerHTML = '<span style="color:var(--danger)">✗ Não foi possível ligar. Verifique o URL e se o script está publicado como "Qualquer pessoa".</span>';
+  }
+}
+
+// ══════════════════════════════════════
+//  EXPORT EXCEL
+// ══════════════════════════════════════
+function exportExcel() {
+  if(!orders.length){ showToast('Sem encomendas para exportar'); return }
+  const rows = [['Apartamento','Tipo de Serviço','Nº Pessoas','Data','Hora de Entrega','Preço (€)','Estado','Observações','Registado em']];
+  orders.forEach(o => rows.push([o.apartamento, o.tipo, o.pessoas, o.data, o.hora, o.preco!==''&&o.preco!==undefined?parseFloat(o.preco):'', o.estado, o.observacoes||'', o.criadoEm]));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:22},{wch:22},{wch:12},{wch:12},{wch:15},{wch:12},{wch:12},{wch:40},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Ordens de Venda');
+  XLSX.writeFile(wb, `Doces_Petiscos_Ju_${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast('Excel exportado!');
+}
+
+// ══════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+// ══════════════════════════════════════
+//  SERVICE WORKER
+// ══════════════════════════════════════
+if('serviceWorker' in navigator) {
+  const sw = `const C='ju-v2';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll([location.href])));self.skipWaiting()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})`;
+  const blob = new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+
+// Tentar reenviar pendentes ao abrir
+window.addEventListener('load', () => setTimeout(retrySyncPending, 2000));
+</script>
+</body>
+</html>
